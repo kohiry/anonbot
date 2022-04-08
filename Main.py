@@ -1,13 +1,69 @@
 import telebot
 from info import setting
 from telebot import types
+from random import choice
+import sqlite3
+
+
+class Anonims:
+    def __init__(self, data, id):
+        self.id = id
+        self.conn = sqlite3.connect('BASE.db', check_same_thread=False)
+        self.cur = self.conn.cursor()
+        self.all_user = data # all id
+        self.good_data = [] # id status True
+
+    def add_into_base(self, sqlite_insert_query, test=False):
+        self.cur.execute(sqlite_insert_query)
+        if not test:
+            self.conn.commit()
+
+    def find_good(self): # True - wanna talk in condition - seeker, false - did't want
+        self.good_data = [i for i in self.all_user if i.status == True] # find free users
+
+    def find_pair(self, id):
+        while True:
+            self.find_good()
+            if len(self.good_data) != 0:
+                self.friend_id = choice(self.good_data)
+                break
+
+    def registration(self): # test используется выше чтобы не коммитить пользователя
+        # проверка есть ли userid в таблице users
+        info = self.cur.execute('SELECT userid FROM users WHERE userid=?', (int(self.id),))
+        if info.fetchone() is None:
+            # если человека нету в бд
+            none_team = "noneteam"
+            self.add_into_base(f"INSERT INTO users VALUES({int(self.id)}, 0);")
+            return "Added"
+        else:
+            # если человек есть в бд
+            return "Been"
+
+
+class User:
+    def __init__(self, id, status=False):
+        self.status = status # True/False
+        self.id = id
+        self.friend_id = 0
+
+    def change_status(self, status):
+        self.status = status
+
+
+conn = sqlite3.connect('BASE.db', check_same_thread=False)
+cur = conn.cursor()
+DATA_ID = cur.execute('SELECT userid FROM users')
+local_user = ''
 
 # Инициализация бота и основные обработчики комманд,основная логика в Obj
 bot = telebot.TeleBot(setting);
 
 users = {
- "644823883": "644823883",
- "1": "644823883"
+"1": "1"
+ #"644823883": "994185429",
+ #"994185429": "644823883"
+ #"997740537": "644823883"
 }
 
 @bot.callback_query_handler(func=lambda call: call.data == 'cbTeam1')
@@ -17,12 +73,18 @@ def cb_buttonTeam1(message: types.Message):
 
 @bot.message_handler(content_types=["text"])
 def get_text_messages(message):
-    print(list(users.keys()), [str(message.from_user.id)])
+    global local_user
+    local_user = Anonims(DATA_ID, message.from_user.id)
+    print(local_user)
     if message.text in ["Привет", "привет", "сап", "s"]:
         bot.send_message(message.from_user.id, message.from_user.id)
-    if "1" in message.text:
-        bot.send_message(users["1"], "Good work")
     elif str(message.from_user.id) in list(users.keys()):
-        bot.send_message(users[str(message.from_user.id)], "Work")
+        bot.send_message(users[str(message.from_user.id)], message.text)
+    elif "/start" in message.text:
+        reg_commit = local_user.registration()
+        if reg_commit == "Added":
+            bot.send_message(message.from_user.id, 'Новичок, это хорошо!')
+        elif reg_commit == "Been":
+            bot.send_message(message.from_user.id, "Ты уже зарегистрирован.")
 
 bot.polling(none_stop=True, interval=0)
