@@ -59,7 +59,7 @@ local_user = ''
 # Инициализация бота и основные обработчики комманд,основная логика в Obj
 bot = telebot.TeleBot(setting);
 
-users = {
+users_pair = {
 "1": "1"
  #"644823883": "994185429",
  #"994185429": "644823883"
@@ -78,8 +78,8 @@ def get_text_messages(message):
     print(local_user)
     if message.text in ["Привет", "привет", "сап", "s"]:
         bot.send_message(message.from_user.id, message.from_user.id)
-    elif str(message.from_user.id) in list(users.keys()):
-        bot.send_message(users[str(message.from_user.id)], message.text)
+    elif str(message.from_user.id) in list(users_pair.keys()):
+        bot.send_message(users_pair[str(message.from_user.id)], message.text)
     elif "/start" in message.text:
         reg_commit = local_user.registration()
         if reg_commit == "Added":
