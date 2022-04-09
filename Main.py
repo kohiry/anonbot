@@ -5,12 +5,15 @@ from random import choice
 import sqlite3
 
 
+# list of persons who wanna find another people
+finding_list = []
+
+
 class Anonims:
-    def __init__(self, data, id):
+    def __init__(self, id):
         self.id = id
         self.conn = sqlite3.connect('BASE.db', check_same_thread=False)
         self.cur = self.conn.cursor()
-        self.all_user = data # all id
         self.good_data = [] # id status True
 
     def add_into_base(self, sqlite_insert_query, test=False):
@@ -18,8 +21,15 @@ class Anonims:
         if not test:
             self.conn.commit()
 
+    def all_user(self):
+        self.cur.execute(f"SELECT userid, status FROM users")
+        one_result = self.cur.fetchall()
+        return one_result
+
     def find_good(self): # True - wanna talk in condition - seeker, false - did't want
-        self.good_data = [i for i in self.all_user if i.status == True] # find free users
+        list_users = self.all_user()
+        self.good_data = [i[0] for i in list_users if i[1] == 1 and i[0] != self.id] # find free users; 1== free 0= not
+        print(self.good_data)
 
     def find_pair(self, id):
         while True:
@@ -53,7 +63,7 @@ class User:
 
 conn = sqlite3.connect('BASE.db', check_same_thread=False)
 cur = conn.cursor()
-DATA_ID = cur.execute('SELECT userid FROM users')
+#DATA_ID = cur.execute('SELECT userid FROM users')
 local_user = ''
 
 # Инициализация бота и основные обработчики комманд,основная логика в Obj
@@ -74,8 +84,8 @@ def cb_buttonTeam1(message: types.Message):
 @bot.message_handler(content_types=["text"])
 def get_text_messages(message):
     global local_user
-    local_user = Anonims(DATA_ID, message.from_user.id)
-    print(local_user)
+    local_user = Anonims(message.from_user.id)
+    local_user.find_good()
     if message.text in ["Привет", "привет", "сап", "s"]:
         bot.send_message(message.from_user.id, message.from_user.id)
     elif str(message.from_user.id) in list(users_pair.keys()):

@@ -26,5 +26,9 @@ if __name__ == '__main__':
            status INT);
         """)
 
+        cur.execute("""CREATE TABLE IF NOT EXISTS queue(
+           userid INT PRIMARY KEY);
+        """) # queue - типа очередь
+
         conn.commit()
         conn.close()
