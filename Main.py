@@ -5,9 +5,7 @@ from random import choice
 import sqlite3
 
 
-# list of persons who wanna find another people
-finding_list = []
-
+CONDITION = 'SEARCH' #'SEARCH, TALK'
 
 class Anonims:
     def __init__(self, id):
@@ -26,10 +24,18 @@ class Anonims:
         one_result = self.cur.fetchall()
         return one_result
 
+    def want_search(self):
+        self.cur.execute(f"SELECT userid FROM queue")
+        one_result = self.cur.fetchall()
+        if len(one_result) >= 2:
+            return one_result
+        elif len(one_result) < 2:
+            return 'NULL'
+
     def find_good(self): # True - wanna talk in condition - seeker, false - did't want
         list_users = self.all_user()
         self.good_data = [i[0] for i in list_users if i[1] == 1 and i[0] != self.id] # find free users; 1== free 0= not
-        print(self.good_data)
+
 
     def find_pair(self, id):
         while True:
@@ -83,18 +89,27 @@ def cb_buttonTeam1(message: types.Message):
 
 @bot.message_handler(content_types=["text"])
 def get_text_messages(message):
-    global local_user
-    local_user = Anonims(message.from_user.id)
-    local_user.find_good()
-    if message.text in ["Привет", "привет", "сап", "s"]:
-        bot.send_message(message.from_user.id, message.from_user.id)
-    elif str(message.from_user.id) in list(users_pair.keys()):
-        bot.send_message(users_pair[str(message.from_user.id)], message.text)
-    elif "/start" in message.text:
-        reg_commit = local_user.registration()
-        if reg_commit == "Added":
-            bot.send_message(message.from_user.id, 'Новичок, это хорошо!')
-        elif reg_commit == "Been":
-            bot.send_message(message.from_user.id, "Ты уже зарегистрирован.")
+    global local_user, CONDITION
+
+    if CONDITION == 'SEARCH':
+        local_user = Anonims(message.from_user.id)
+        answer = local_user.want_search()
+        if type(answer) == type([]):
+            print('Nice')
+            CONDITION = "TALK"
+    elif CONDITION == 'TALK':
+        if message.text in ["Привет", "привет", "сап", "s"]:
+            bot.send_message(message.from_user.id, message.from_user.id)
+        elif str(message.from_user.id) in list(users_pair.keys()):
+            bot.send_message(users_pair[str(message.from_user.id)], message.text)
+        elif "/start" in message.text:
+            reg_commit = local_user.registration()
+            if reg_commit == "Added":
+                bot.send_message(message.from_user.id, 'Новичок, это хорошо!')
+            elif reg_commit == "Been":
+                bot.send_message(message.from_user.id, "Ты уже зарегистрирован.")
+
+
+
 
 bot.polling(none_stop=True, interval=0)
