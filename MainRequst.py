@@ -1,9 +1,5 @@
 import requests
 from info import setting
-
-import telebot
-from info import setting
-from telebot import types
 from random import choice
 import sqlite3
 
@@ -15,7 +11,6 @@ class Anonims:
         self.id = id
         self.conn = sqlite3.connect('BASE.db', check_same_thread=False)
         self.cur = self.conn.cursor()
-        self.good_data = [] # id status True
 
     def add_into_base(self, sqlite_insert_query, test=False):
         self.cur.execute(sqlite_insert_query)
@@ -31,13 +26,16 @@ class Anonims:
         self.cur.execute(f"SELECT userid FROM queue")
         one_result = self.cur.fetchall()
         if len(one_result) >= 2:
-            return one_result
+            return list(one_result)
         elif len(one_result) < 2:
             return 'NULL'
 
-    def find_good(self): # True - wanna talk in condition - seeker, false - did't want
-        list_users = self.all_user()
-        self.good_data = [i[0] for i in list_users if i[1] == 1 and i[0] != self.id] # find free users; 1== free 0= not
+    def clear_queue(self):
+        self.cur.execute("DELETE FROM queue")
+        self.conn.commit()
+
+    def add_queue(self): # True - wanna talk in condition - seeker, false - did't want
+        self.add_into_base(f"INSERT INTO queue VALUES({int(self.id)});")
 
 
     def find_pair(self, id):
@@ -97,8 +95,23 @@ def create_request(chat_id, text, parse_mode='HTML'):
         return request
 
 
+def pairs_transform():
+    dict_pairs = dict()
+    with open('Pairs.txt', 'r') as f:
+        pair_data = f.readlines()
+    for line in pair_data:
+        first, second = line.split(';')[0], line.split(';')[1]
+        dict_pairs[first[0]] = first[1]
+        dict_pairs[first[1]] = first[0]
+        dict_pairs[second[0]] = second[1]
+        dict_pairs[second[1]] = second[0]
+        print(first,second)
+    return dict_pairs
+
+
 def check_update():
-    global offset
+    global offset, local_user
+
 
     URL = 'https://api.telegram.org/bot'
     TOKEN = setting
@@ -114,21 +127,36 @@ def check_update():
     if not request.json()['ok']:
         return False
 
-    for update in request.json()['result']:
-        offset = update['update_id'] # подтверждаем обновление
-        if 'message' not in update or 'text' not in update['message']: # this is not mesage?
-            print('wtf is it')
-            continue
-        elif str(update['message']['chat']['id']) in list(users_pair.keys()): # не проверено, работает ли
-            bot.send_message(users_pair[str(update['message']['chat']['id'])], update['message']['text'])
-        if  '/start' in update['message']['text']:
-            reg_commit = local_user.registration()
-            if reg_commit == "Added":
-                create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
-            elif reg_commit == "Been":
-                create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
-        create_request(update['message']['chat']['id'], 'Sup')
 
+    for update in request.json()['result']:
+        try:
+            print(request.json())
+            offset = update['update_id'] # подтверждаем обновление
+            if 'edited_message' not in update:
+                local_user = Anonims(update['message']['chat']['id']) #Бот ложится, если изменить одно из сообщений
+                answer = local_user.want_search()
+                print(pairs_transform(), 'check')
+                if type(answer) == type([]):
+                    print('Nice', answer)
+                    with open('Pairs.txt', 'a') as f:
+                        f.write(str(answer[0][0]) + '=' + str(answer[1][0]) + ';' + str(answer[1][0]) + '=' + str(answer[0][0])+'\n')
+                    local_user.clear_queue()
+                if 'message' not in update or 'text' not in update['message']: # this is not mesage?
+                    print('wtf is it')
+                    continue
+                elif '/search' in update['message']['text']:
+                    local_user.add_queue()
+                elif str(update['message']['chat']['id']) in list(users_pair.keys()): # не проверено, работает ли
+                    create_request(users_pair[str(update['message']['chat']['id'])], update['message']['text'])
+                if  '/start' in update['message']['text']:
+                    reg_commit = local_user.registration()
+                    if reg_commit == "Added":
+                        create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
+                    elif reg_commit == "Been":
+                        create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
+                create_request(update['message']['chat']['id'], 'Sup')
+        except Exception as e:
+            print(e, 'Bag ignor')
 
 
 
