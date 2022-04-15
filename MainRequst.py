@@ -57,16 +57,35 @@ class Anonims:
                 self.friend_id = choice(self.good_data)
                 break
 
-    def stop(self):
-        pass
+    def stop(self, user2_id: str): # have bug, i should create black list
+        text = ''
+        new_text = ''
+        with open('Pairs.txt', 'r') as f:
+            text = list(f.readlines())
+        for line in text:
+            if user2_id not in line:
+                new_text += line
+        with open('Pairs.txt', 'w') as f:
+            f.write(new_text)
+        if self.checkPairs():
+            self.add_into_base(f"INSERT or IGNORE INTO queue VALUES({int(self.id)});")
+            self.add_into_base(f"INSERT or IGNORE INTO queue VALUES({int(user2_id)});")
+            # add in black list
+            info = self.cur.execute('SELECT black_list FROM users WHERE userid=?', (int(self.id),))
+            print(inf.featchone())
+            self.add_into_base(f"UPDATE users SET black_list='{info.fetchone() + '' + self.id}' WHERE userid={int(user2_id)};")
+            info = self.cur.execute('SELECT black_list FROM users WHERE userid=?', (int(self.id),))
+            self.add_into_base(f"UPDATE users SET black_list='{info.fetchone() + '' + user2_id}') WHERE userid={self.id};")
+            # We have bags with black_list: not adding, and not deleting from Pairs.txt
+        else:
+            print('We have this id in base')
 
     def registration(self): # test используется выше чтобы не коммитить пользователя
         # проверка есть ли userid в таблице users
         info = self.cur.execute('SELECT userid FROM users WHERE userid=?', (int(self.id),))
         if info.fetchone() is None:
             # если человека нету в бд
-            none_team = "noneteam"
-            self.add_into_base(f"INSERT INTO users VALUES({int(self.id)}, 0);")
+            self.add_into_base(f"INSERT INTO users VALUES({int(self.id)}, 0, '');")
             return "Added"
         else:
             # если человек есть в бд
@@ -99,7 +118,6 @@ def create_request(chat_id, text, parse_mode='HTML'):
     }
     try:
         request = requests.post(URL+TOKEN+'/sendMessage', data=message_data)
-        print(request.json())
     except:
         print('Error')
         return False
@@ -149,7 +167,7 @@ def check_update():
     What i need to do?
     V check, have I, same ID in base .txt when try add again.
     V add data from Pairs into users_pair
-    X add func delete data from Pairs and users_pair
+    V add func delete data from Pairs and users_pair
     X add colomn for user what id he talking yet
     V have fun (have a troble with sleep)
     '''
@@ -172,15 +190,18 @@ def check_update():
                 elif '/search' in update['message']['text']:
                     local_user.add_queue()
                 elif '/stop' in update['message']['text']:
-                    local_user.stop()
+                    if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
+                        local_user.stop(users_pair[str(update['message']['chat']['id'])])
+                    else:
+                        create_request(update['message']['chat']['id'], 'Ты не в диалоге, дурак.')
                 elif str(update['message']['chat']['id']) in list(users_pair.keys()): # не проверено, работает ли
-                    response = create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
+                    create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
                 if  '/start' in update['message']['text']:
                     reg_commit = local_user.registration()
                     if reg_commit == "Added":
-                        response = create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
+                        create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
                     elif reg_commit == "Been":
-                        response = create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
+                        create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
                 #response = create_request(update['message']['chat']['id'], 'Sup')
         except Exception as e:
             print(e, 'Bag ignor')

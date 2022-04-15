@@ -23,7 +23,8 @@ if __name__ == '__main__':
         # созданию таблицу
         cur.execute("""CREATE TABLE IF NOT EXISTS users(
            userid INT PRIMARY KEY,
-           status INT);
+           status INT,
+           black_list string);
         """)
 
         cur.execute("""CREATE TABLE IF NOT EXISTS queue(
