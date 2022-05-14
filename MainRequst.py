@@ -2,6 +2,7 @@ import requests
 from info import setting
 from random import choice
 import sqlite3
+import traceback
 
 
 CONDITION = 'SEARCH' #'SEARCH, TALK'
@@ -60,6 +61,7 @@ class Anonims:
     def stop(self, user2_id: str): # have bug, i should create black list
         text = ''
         new_text = ''
+        print(user2_id)
         with open('Pairs.txt', 'r') as f:
             text = list(f.readlines())
         for line in text:
@@ -72,11 +74,12 @@ class Anonims:
             self.add_into_base(f"INSERT or IGNORE INTO queue VALUES({int(user2_id)});")
             # add in black list
             info = self.cur.execute('SELECT black_list FROM users WHERE userid=?', (int(self.id),))
-            print(inf.featchone())
-            self.add_into_base(f"UPDATE users SET black_list='{info.fetchone() + '' + self.id}' WHERE userid={int(user2_id)};")
+            print(info.fetchone()[0]) # ВСЕ ЕЩЁТРАБЛЫ С SQL ЗАПРОСОМ
+            self.cur.execute(f"UPDATE users SET black_list='{str(info.fetchone()) + ':' + str(self.id)}' WHERE userid=?", (int(user2_id),))
             info = self.cur.execute('SELECT black_list FROM users WHERE userid=?', (int(self.id),))
-            self.add_into_base(f"UPDATE users SET black_list='{info.fetchone() + '' + user2_id}') WHERE userid={self.id};")
+            self.cur.execute(f"UPDATE users SET black_list='{str(info.fetchone()) + ':' + str(user2_id)}') WHERE userid=?", (int(self.id),))
             # We have bags with black_list: not adding, and not deleting from Pairs.txt
+            self.conn.commit()
         else:
             print('We have this id in base')
 
@@ -99,7 +102,7 @@ local_user = ''
 
 
 users_pair = {
-"1": "1"
+ '1': '1'
  #"644823883": "994185429",
  #"994185429": "644823883"
  #"997740537": "644823883"
@@ -204,7 +207,7 @@ def check_update():
                         create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
                 #response = create_request(update['message']['chat']['id'], 'Sup')
         except Exception as e:
-            print(e, 'Bag ignor')
+            print(traceback.format_exc(), 'Bag ignor')
 
 
 
