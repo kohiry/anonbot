@@ -24,7 +24,7 @@ if __name__ == '__main__':
         cur.execute("""CREATE TABLE IF NOT EXISTS users(
            userid INT PRIMARY KEY,
            status INT,
-           black_list string);
+           black_list TEXT);
         """)
 
         cur.execute("""CREATE TABLE IF NOT EXISTS queue(

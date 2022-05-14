@@ -3,6 +3,7 @@ from info import setting
 from random import choice
 import sqlite3
 import traceback
+from os import remove
 
 
 CONDITION = 'SEARCH' #'SEARCH, TALK'
@@ -72,14 +73,28 @@ class Anonims:
         if self.checkPairs():
             self.add_into_base(f"INSERT or IGNORE INTO queue VALUES({int(self.id)});")
             self.add_into_base(f"INSERT or IGNORE INTO queue VALUES({int(user2_id)});")
-            # add in black list
-            info = self.cur.execute('SELECT black_list FROM users WHERE userid=?', (int(self.id),))
-            print(info.fetchone()[0]) # ВСЕ ЕЩЁТРАБЛЫ С SQL ЗАПРОСОМ
-            self.cur.execute(f"UPDATE users SET black_list='{str(info.fetchone()) + ':' + str(self.id)}' WHERE userid=?", (int(user2_id),))
-            info = self.cur.execute('SELECT black_list FROM users WHERE userid=?', (int(self.id),))
-            self.cur.execute(f"UPDATE users SET black_list='{str(info.fetchone()) + ':' + str(user2_id)}') WHERE userid=?", (int(self.id),))
+            # add in black list\
+            def BlackL_txt_file_costil(information, id):
+                text_bl = ''
+                with open('data_bl.txt', 'w') as f:
+                    print(information.fetchall(), id, 'heh')
+                    f.write(''.join([':'.join(list(i[0])) for i in information.fetchall()]))
+                    f.write(':' + str(id))
+                with open('data_bl.txt', 'r') as f:
+                    text_bl = f.readline()
+                open("data_bl.txt", 'w').close()
+                return text_bl
+
+
+            info = self.cur.execute(f'SELECT black_list FROM users WHERE userid={self.id}')
+            data_bl0 = BlackL_txt_file_costil(info, user2_id)
+            self.cur.execute(f"UPDATE users SET black_list='{data_bl0}' WHERE userid={int(self.id)};")
+            info2 = self.cur.execute(f'SELECT black_list FROM users WHERE userid={user2_id}')
+            data_bl1 = BlackL_txt_file_costil(info2, self.id)
+            self.cur.execute(f"UPDATE users SET black_list='{data_bl1}' WHERE userid={int(user2_id)};")
             # We have bags with black_list: not adding, and not deleting from Pairs.txt
             self.conn.commit()
+            remove('data_bl.txt')
         else:
             print('We have this id in base')
 
@@ -178,11 +193,11 @@ def check_update():
         try:
             offset = update['update_id'] # подтверждаем обновление
             users_pair = pairs_transform()
+            print(users_pair)
             if 'edited_message' not in update:
                 local_user = Anonims(update['message']['chat']['id']) #Бот ложится, если изменить одно из сообщений
                 local_user.checkPairs()
                 answer = local_user.want_search()
-                #user_pair = pairs_transform() I can't solo test
                 if type(answer) == type([]):
                     with open('Pairs.txt', 'a') as f:
                         f.write(str(answer[0][0]) + '=' + str(answer[1][0]) + ';' + str(answer[1][0]) + '=' + str(answer[0][0])+'\n')
@@ -205,6 +220,9 @@ def check_update():
                         create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
                     elif reg_commit == "Been":
                         create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
+                if  'info' in update['message']['text']:
+                    message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
+                    create_request(update['message']['chat']['id'], message)
                 #response = create_request(update['message']['chat']['id'], 'Sup')
         except Exception as e:
             print(traceback.format_exc(), 'Bag ignor')
