@@ -5,14 +5,19 @@ import sqlite3
 import traceback
 from os import remove
 
-
-CONDITION = 'SEARCH' #'SEARCH, TALK'
-
 class Anonims:
     def __init__(self, id):
         self.id = id
         self.conn = sqlite3.connect('BASE.db', check_same_thread=False)
         self.cur = self.conn.cursor()
+
+    def alg_sort(self, massive):
+        id_plus_keys = dict()
+        for id in massive:
+            id_plus_keys[id[0]] = tuple(self.cur.execute(f"SELECT black_list FROM users WHERE userid={id[0]}").fetchall())[0][0]
+        print(id_plus_keys)
+        return id_plus_keys
+
 
     def add_into_base(self, sqlite_insert_query, test=False):
         self.cur.execute(sqlite_insert_query)
@@ -62,7 +67,6 @@ class Anonims:
     def stop(self, user2_id: str): # have bug, i should create black list
         text = ''
         new_text = ''
-        print(user2_id)
         with open('Pairs.txt', 'r') as f:
             text = list(f.readlines())
         for line in text:
@@ -77,8 +81,7 @@ class Anonims:
             def BlackL_txt_file_costil(information, id):
                 text_bl = ''
                 with open('data_bl.txt', 'w') as f:
-                    print(information.fetchall(), id, 'heh')
-                    f.write(''.join([':'.join(list(i[0])) for i in information.fetchall()]))
+                    f.write(':'.join([i[0] for i in information.fetchall()]))
                     f.write(':' + str(id))
                 with open('data_bl.txt', 'r') as f:
                     text_bl = f.readline()
@@ -95,6 +98,12 @@ class Anonims:
             # We have bags with black_list: not adding, and not deleting from Pairs.txt
             self.conn.commit()
             remove('data_bl.txt')
+            text_pair = ''
+            with open('Pairs.txt', 'r+') as f:
+                text_pair = ''.join((line for line in tuple(f.readlines()) if str(self.id) not in line))
+            open('Pairs.txt', 'w').close()
+            with open('Pairs.txt', 'r+') as f:
+                f.write(text_pair)
         else:
             print('We have this id in base')
 
@@ -191,23 +200,36 @@ def check_update():
     '''
     for update in request.json()['result']:
         try:
+            print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
             offset = update['update_id'] # подтверждаем обновление
             users_pair = pairs_transform()
-            print(users_pair)
             if 'edited_message' not in update:
                 local_user = Anonims(update['message']['chat']['id']) #Бот ложится, если изменить одно из сообщений
                 local_user.checkPairs()
                 answer = local_user.want_search()
                 if type(answer) == type([]):
                     with open('Pairs.txt', 'a') as f:
+                        rules = local_user.alg_sort(answer) # взвращает словарь
+                        keys_black_list = tuple(rules.keys())
+                        for i in range(len(keys_black_list)):
+                            try:
+                                for j in range(i+1):
+                                    # основные проверки, что есть в blacck листе или нету
+                                    rules[keys_black_list[i]]
+                            except IndexError:
+                                print("Ignore Error Index out of range in adding in queue from bot")
+                        # тут нужно начать работу с black листом. Найти алгоритм эффективного перебора
                         f.write(str(answer[0][0]) + '=' + str(answer[1][0]) + ';' + str(answer[1][0]) + '=' + str(answer[0][0])+'\n')
                     local_user.clear_queue()
                 if 'message' not in update or 'text' not in update['message']: # this is not mesage?
                     print('wtf is it')
                     continue
                 elif '/search' in update['message']['text']:
+                    create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
                     local_user.add_queue()
                 elif '/stop' in update['message']['text']:
+                    create_request(update['message']['chat']['id'], "убираем связь")
+                    #create_request(int(users_pair[str(update['message']['chat']['id'])]), 'убираем связь')
                     if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
                         local_user.stop(users_pair[str(update['message']['chat']['id'])])
                     else:
