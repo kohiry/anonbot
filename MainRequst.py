@@ -189,15 +189,7 @@ def check_update():
     if not request.json()['ok']:
         return False
 
-    '''
-    I have trouble with my .txt BD.
-    What i need to do?
-    V check, have I, same ID in base .txt when try add again.
-    V add data from Pairs into users_pair
-    V add func delete data from Pairs and users_pair
-    X add colomn for user what id he talking yet
-    V have fun (have a troble with sleep)
-    '''
+
     for update in request.json()['result']:
         try:
             print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
@@ -211,15 +203,21 @@ def check_update():
                     with open('Pairs.txt', 'a') as f:
                         rules = local_user.alg_sort(answer) # взвращает словарь
                         keys_black_list = tuple(rules.keys())
+                        right_pairs = []
                         for i in range(len(keys_black_list)):
                             try:
-                                for j in range(i+1):
+                                for j in range(i+1, len(keys_black_list)):
                                     # основные проверки, что есть в blacck листе или нету
-                                    rules[keys_black_list[i]]
+                                    if str(keys_black_list[i]) not in rules[keys_black_list[j]]:
+                                        right_pairs.append((keys_black_list[i], keys_black_list[j]))
+                                        break
                             except IndexError:
                                 print("Ignore Error Index out of range in adding in queue from bot")
-                        # тут нужно начать работу с black листом. Найти алгоритм эффективного перебора
-                        f.write(str(answer[0][0]) + '=' + str(answer[1][0]) + ';' + str(answer[1][0]) + '=' + str(answer[0][0])+'\n')
+                            finally:
+                                print(right_pairs, 'right_pairs')
+                        # данные есть, нихуя не делаю с ними нужно фиксануть эту строчку нижу V
+                        for id_1, id_2 in right_pairs:
+                            f.write(str(id_1) + '=' + str(id_2) + ';' + str(id_2) + '=' + str(id_1)+'\n')
                     local_user.clear_queue()
                 if 'message' not in update or 'text' not in update['message']: # this is not mesage?
                     print('wtf is it')
