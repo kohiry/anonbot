@@ -5,9 +5,20 @@ import sqlite3
 import traceback
 from os import remove
 
+
+users_pair = {
+ '1': '1'
+ #"644823883": "994185429",
+ #"994185429": "644823883"
+ #"997740537": "644823883"
+}
+
+
 class Anonims:
     def __init__(self, id):
         self.id = id
+        self.new_status = 'None' # Pair/None
+        self.old_status = 'None'
         self.conn = sqlite3.connect('BASE.db', check_same_thread=False)
         self.cur = self.conn.cursor()
 
@@ -15,7 +26,6 @@ class Anonims:
         id_plus_keys = dict()
         for id in massive:
             id_plus_keys[id[0]] = tuple(self.cur.execute(f"SELECT black_list FROM users WHERE userid={id[0]}").fetchall())[0][0]
-        print(id_plus_keys)
         return id_plus_keys
 
 
@@ -37,8 +47,11 @@ class Anonims:
         elif len(one_result) < 2:
             return 'NULL'
 
-    def clear_queue(self):
-        self.cur.execute("DELETE FROM queue")
+    def clear_queue(self, *ids): # баг, если 3 id то один может присосаться к двум. Решение: выходить из перебора на обновление
+        # по неясной причине, не афк id удаялется из queue
+        print(id)
+        self.cur.execute(f"DELETE FROM queue WHERE userid={ids[0]}")
+        self.cur.execute(f"DELETE FROM queue WHERE userid={ids[1]}")
         self.conn.commit()
 
     def checkPairs(self):
@@ -57,12 +70,7 @@ class Anonims:
             print('We have this id in base')
 
 
-    def find_pair(self, id):
-        while True:
-            self.find_good()
-            if len(self.good_data) != 0:
-                self.friend_id = choice(self.good_data)
-                break
+            # delete find pair becouse i don't know what this doing
 
     def stop(self, user2_id: str): # have bug, i should create black list
         text = ''
@@ -125,12 +133,7 @@ cur = conn.cursor()
 local_user = ''
 
 
-users_pair = {
- '1': '1'
- #"644823883": "994185429",
- #"994185429": "644823883"
- #"997740537": "644823883"
-}
+
 
 offset = 0 # for added up to date
 
@@ -196,29 +199,29 @@ def check_update():
             offset = update['update_id'] # подтверждаем обновление
             users_pair = pairs_transform()
             if 'edited_message' not in update:
-                local_user = Anonims(update['message']['chat']['id']) #Бот ложится, если изменить одно из сообщений
+                local_user = Anonims(update['message']['chat']['id'])
                 local_user.checkPairs()
                 answer = local_user.want_search()
                 if type(answer) == type([]):
                     with open('Pairs.txt', 'a') as f:
                         rules = local_user.alg_sort(answer) # взвращает словарь
                         keys_black_list = tuple(rules.keys())
-                        right_pairs = []
+                        right_pairs = set()
                         for i in range(len(keys_black_list)):
-                            try:
-                                for j in range(i+1, len(keys_black_list)):
-                                    # основные проверки, что есть в blacck листе или нету
-                                    if str(keys_black_list[i]) not in rules[keys_black_list[j]]:
-                                        right_pairs.append((keys_black_list[i], keys_black_list[j]))
-                                        break
-                            except IndexError:
-                                print("Ignore Error Index out of range in adding in queue from bot")
-                            finally:
-                                print(right_pairs, 'right_pairs')
+                            for j in range(i+1, len(keys_black_list)):
+                                # основные проверки, что есть в blacck листе или нету
+                                if str(keys_black_list[i]) not in rules[keys_black_list[j]]:
+
+                                    right_pairs.add((keys_black_list[i], keys_black_list[j])) # right_pairs - set
+                                    break
+
                         # данные есть, нихуя не делаю с ними нужно фиксануть эту строчку нижу V
                         for id_1, id_2 in right_pairs:
+                            create_request(str(id_1), "Связь установлена.")
+                            create_request(str(id_2), "Связь установлена.")
+                            print(id_1, id_2, "LolBol")
                             f.write(str(id_1) + '=' + str(id_2) + ';' + str(id_2) + '=' + str(id_1)+'\n')
-                    local_user.clear_queue()
+                            local_user.clear_queue(id_1, id_2) # пофиксить очищение + идея: можно отправлять фото и видео строго поле 5 сообщения
                 if 'message' not in update or 'text' not in update['message']: # this is not mesage?
                     print('wtf is it')
                     continue
@@ -244,6 +247,8 @@ def check_update():
                     message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
                     create_request(update['message']['chat']['id'], message)
                 #response = create_request(update['message']['chat']['id'], 'Sup')
+        except IndexError:
+            print("Ignore Error Index out of range in adding in queue from bot", traceback.format_exc())
         except Exception as e:
             print(traceback.format_exc(), 'Bag ignor')
 
