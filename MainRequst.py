@@ -4,6 +4,7 @@ from random import choice
 import sqlite3
 import traceback
 from os import remove
+import json
 
 
 users_pair = {
@@ -137,6 +138,13 @@ local_user = ''
 
 offset = 0 # for added up to date
 
+def reply_keyboard(chat_id, text):
+    URL = 'https://api.telegram.org/bot'
+    TOKEN = setting
+    reply_markup ={"keyboard": [[{"request_location":True, "text":"Где я нахожусь"}]], "resize_keyboard": True, "one_time_keyboard": True}
+    data = {'chat_id': chat_id, 'text': text, 'reply_markup': json.dumps(reply_markup)}
+    requests.post(f'{URL}{TOKEN}/sendMessage', data=data)
+
 def create_request(chat_id, text, parse_mode='HTML'):
     URL = 'https://api.telegram.org/bot'
     TOKEN = setting
@@ -195,6 +203,7 @@ def check_update():
 
     for update in request.json()['result']:
         try:
+
             print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
             offset = update['update_id'] # подтверждаем обновление
             users_pair = pairs_transform()
@@ -238,6 +247,7 @@ def check_update():
                 elif str(update['message']['chat']['id']) in list(users_pair.keys()): # не проверено, работает ли
                     create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
                 if  '/start' in update['message']['text']:
+                    reply_keyboard(update['message']['chat']['id'], "Укажи местоположение.")
                     reg_commit = local_user.registration()
                     if reg_commit == "Added":
                         create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
@@ -247,6 +257,7 @@ def check_update():
                     message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
                     create_request(update['message']['chat']['id'], message)
                 #response = create_request(update['message']['chat']['id'], 'Sup')
+
         except IndexError:
             print("Ignore Error Index out of range in adding in queue from bot", traceback.format_exc())
         except Exception as e:
