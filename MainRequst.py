@@ -1,5 +1,5 @@
 import requests
-from info import setting
+from info import setting, geo
 from random import choice
 import sqlite3
 import traceback
@@ -181,6 +181,11 @@ def pairs_transform():
         #print(line)
     return dict_pairs
 
+def geo_data_place(latitude, longitude):
+    token = geo
+    headers = {'Accept-Language': "ru"}
+    adress = requests.get(f"https://eu1.locationiq.com/v1/reverse.php?key={token}&lat={latitude}&lon={longitude}&format=json", headers=headers).json()
+    return f'Your home {adress.get("display_name")}'
 
 def check_update():
     global offset, local_user, users_pair
@@ -233,36 +238,36 @@ def check_update():
                             local_user.clear_queue(id_1, id_2) # пофиксить очищение + идея: можно отправлять фото и видео строго поле 5 сообщения
 
                 if (user_location := update['message'].get('location')):
-                    print(user_location)
-                if 'message' not in update or 'text' not in update['message']: # this is not mesage?
+                    create_request(update['message']['chat']['id'], geo_data_place(user_location['latitude'], user_location['longitude']))
+                if 'message' not in update: # this is not mesage?
                     print('wtf is it')
-                    continue
-                else:
-                    print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
-                    continue
-                    if '/search' in update['message']['text']:
-                        create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
-                        local_user.add_queue()
-                    elif '/stop' in update['message']['text']:
-                        create_request(update['message']['chat']['id'], "убираем связь")
-                        #create_request(int(users_pair[str(update['message']['chat']['id'])]), 'убираем связь')
-                        if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
-                            local_user.stop(users_pair[str(update['message']['chat']['id'])])
-                        else:
-                            create_request(update['message']['chat']['id'], 'Ты не в диалоге, дурак.')
-                    elif str(update['message']['chat']['id']) in list(users_pair.keys()): # не проверено, работает ли
-                        create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
-                    if  '/start' in update['message']['text']:
-                        reply_keyboard(update['message']['chat']['id'], "Укажи местоположение.")
-                        reg_commit = local_user.registration()
-                        if reg_commit == "Added":
-                            create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
-                        elif reg_commit == "Been":
-                            create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
-                    if  'info' in update['message']['text']:
-                        message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
-                        create_request(update['message']['chat']['id'], message)
-                    #response = create_request(update['message']['chat']['id'], 'Sup')
+                    if 'text' in update['message']:
+                        print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
+
+                        if '/search' in update['message']['text']:
+                            create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
+                            local_user.add_queue()
+                        elif '/stop' in update['message']['text']:
+                            create_request(update['message']['chat']['id'], "убираем связь")
+                            #create_request(int(users_pair[str(update['message']['chat']['id'])]), 'убираем связь')
+                            if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
+                                local_user.stop(users_pair[str(update['message']['chat']['id'])])
+                            else:
+                                create_request(update['message']['chat']['id'], 'Ты не в диалоге, дурак.')
+                        elif str(update['message']['chat']['id']) in list(users_pair.keys()): # не проверено, работает ли
+                            create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
+                        if  '/start' in update['message']['text']:
+
+                            reg_commit = local_user.registration()
+                            if reg_commit == "Added":
+                                create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
+                            elif reg_commit == "Been":
+                                create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
+                        if  'info' in update['message']['text']:
+                            message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
+                            create_request(update['message']['chat']['id'], message)
+                            reply_keyboard(update['message']['chat']['id'], "Укажи местоположение.")
+                        #response = create_request(update['message']['chat']['id'], 'Sup')
 
         except IndexError:
             print("Ignore Error Index out of range in adding in queue from bot", traceback.format_exc())
