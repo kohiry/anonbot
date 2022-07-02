@@ -70,10 +70,7 @@ class Anonims:
         else:
             print('We have this id in base')
 
-
-            # delete find pair becouse i don't know what this doing
-
-    def stop(self, user2_id: str): # have bug, i should create black list
+    def stop(self, user2_id: str):
         text = ''
         new_text = ''
         with open('Pairs.txt', 'r') as f:
@@ -104,7 +101,6 @@ class Anonims:
             info2 = self.cur.execute(f'SELECT black_list FROM users WHERE userid={user2_id}')
             data_bl1 = BlackL_txt_file_costil(info2, self.id)
             self.cur.execute(f"UPDATE users SET black_list='{data_bl1}' WHERE userid={int(user2_id)};")
-            # We have bags with black_list: not adding, and not deleting from Pairs.txt
             self.conn.commit()
             remove('data_bl.txt')
             text_pair = ''
@@ -116,7 +112,7 @@ class Anonims:
         else:
             print('We have this id in base')
 
-    def registration(self): # test используется выше чтобы не коммитить пользователя
+    def registration(self):
         # проверка есть ли userid в таблице users
         info = self.cur.execute('SELECT userid FROM users WHERE userid=?', (int(self.id),))
         if info.fetchone() is None:
@@ -130,7 +126,6 @@ class Anonims:
 
 conn = sqlite3.connect('BASE.db', check_same_thread=False)
 cur = conn.cursor()
-#DATA_ID = cur.execute('SELECT userid FROM users')
 local_user = ''
 
 
@@ -226,10 +221,8 @@ def check_update():
                                 # основные проверки, что есть в blacck листе или нету
                                 if str(keys_black_list[i]) not in rules[keys_black_list[j]]:
 
-                                    right_pairs.add((keys_black_list[i], keys_black_list[j])) # right_pairs - set
+                                    right_pairs.add((keys_black_list[i], keys_black_list[j]))
                                     break
-
-                        # данные есть, нихуя не делаю с ними нужно фиксануть эту строчку нижу V
                         for id_1, id_2 in right_pairs:
                             create_request(str(id_1), "Связь установлена.")
                             create_request(str(id_2), "Связь установлена.")
@@ -249,12 +242,11 @@ def check_update():
                             local_user.add_queue()
                         elif '/stop' in update['message']['text']:
                             create_request(update['message']['chat']['id'], "убираем связь")
-                            #create_request(int(users_pair[str(update['message']['chat']['id'])]), 'убираем связь')
                             if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
                                 local_user.stop(users_pair[str(update['message']['chat']['id'])])
                             else:
                                 create_request(update['message']['chat']['id'], 'Ты не в диалоге, дурак.')
-                        elif str(update['message']['chat']['id']) in list(users_pair.keys()): # не проверено, работает ли
+                        elif str(update['message']['chat']['id']) in list(users_pair.keys()):
                             create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
                         if  '/start' in update['message']['text']:
 
@@ -267,7 +259,6 @@ def check_update():
                             message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
                             create_request(update['message']['chat']['id'], message)
                             reply_keyboard(update['message']['chat']['id'], "Укажи местоположение.")
-                        #response = create_request(update['message']['chat']['id'], 'Sup')
 
         except IndexError:
             print("Ignore Error Index out of range in adding in queue from bot", traceback.format_exc())
