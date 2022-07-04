@@ -48,8 +48,7 @@ class Anonims:
         elif len(one_result) < 2:
             return 'NULL'
 
-    def clear_queue(self, *ids): # баг, если 3 id то один может присосаться к двум. Решение: выходить из перебора на обновление
-        # по неясной причине, не афк id удаялется из queue
+    def clear_queue(self, *ids):
         print(id)
         self.cur.execute(f"DELETE FROM queue WHERE userid={ids[0]}")
         self.cur.execute(f"DELETE FROM queue WHERE userid={ids[1]}")
@@ -161,6 +160,27 @@ def create_request(chat_id, text, parse_mode='HTML'):
         print('Succeseful')
         return request
 
+def create_request_audio(chat_id, file_id, parse_mode='HTML'):
+    URL = 'https://api.telegram.org/bot'
+    TOKEN = setting
+    message_data = { #create requests for send message
+    'chat_id': chat_id,
+    'audio': file_id,
+    #'reply_to_message_id': update['message']['message_id'], # sendo to reply?? wtf
+    'parse_mode': parse_mode # about formate text down
+    }
+    try:
+        request = requests.post(URL+TOKEN+'/sendAudio', data=message_data)
+    except:
+        print('Error')
+        return False
+    finally:
+        #if not request.status_code == 200:
+        #    return 200
+        #else:
+        print('Succeseful')
+        return request
+
 
 def pairs_transform():
     dict_pairs = dict()
@@ -206,7 +226,10 @@ def check_update():
 
 
             offset = update['update_id'] # подтверждаем обновление
+
+
             users_pair = pairs_transform()
+
             if 'edited_message' not in update:
                 local_user = Anonims(update['message']['chat']['id'])
                 local_user.checkPairs()
@@ -232,33 +255,37 @@ def check_update():
 
                 if (user_location := update['message'].get('location')):
                     create_request(update['message']['chat']['id'], geo_data_place(user_location['latitude'], user_location['longitude']))
-                if 'message' not in update: # this is not mesage?
+
+                if 'text' in update['message']:
+                    print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
+
+                    if '/search' in update['message']['text']:
+                        create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
+                        local_user.add_queue()
+                    elif '/stop' in update['message']['text']:
+                        create_request(update['message']['chat']['id'], "убираем связь")
+                        if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
+                            local_user.stop(users_pair[str(update['message']['chat']['id'])])
+                        else:
+                            create_request(update['message']['chat']['id'], 'Ты не в диалоге, дурак.')
+                    elif str(update['message']['chat']['id']) in list(users_pair.keys()):
+                        create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
+                    if  '/start' in update['message']['text']:
+
+                        reg_commit = local_user.registration()
+                        if reg_commit == "Added":
+                            create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
+                        elif reg_commit == "Been":
+                            create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
+                    if  'info' in update['message']['text']:
+                        message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
+                        create_request(update['message']['chat']['id'], message)
+                        reply_keyboard(update['message']['chat']['id'], "Укажи местоположение.")
+
+                #костыль только для аудио
+                if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'voice' in update['message']:
                     print('wtf is it')
-                    if 'text' in update['message']:
-                        print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
-
-                        if '/search' in update['message']['text']:
-                            create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
-                            local_user.add_queue()
-                        elif '/stop' in update['message']['text']:
-                            create_request(update['message']['chat']['id'], "убираем связь")
-                            if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
-                                local_user.stop(users_pair[str(update['message']['chat']['id'])])
-                            else:
-                                create_request(update['message']['chat']['id'], 'Ты не в диалоге, дурак.')
-                        elif str(update['message']['chat']['id']) in list(users_pair.keys()):
-                            create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
-                        if  '/start' in update['message']['text']:
-
-                            reg_commit = local_user.registration()
-                            if reg_commit == "Added":
-                                create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
-                            elif reg_commit == "Been":
-                                create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
-                        if  'info' in update['message']['text']:
-                            message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
-                            create_request(update['message']['chat']['id'], message)
-                            reply_keyboard(update['message']['chat']['id'], "Укажи местоположение.")
+                    create_request_audio(int(users_pair[str(update['message']['chat']['id'])]), update['message']['voice']['file_id'])
 
         except IndexError:
             print("Ignore Error Index out of range in adding in queue from bot", traceback.format_exc())
