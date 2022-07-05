@@ -160,7 +160,7 @@ def create_request(chat_id, text, parse_mode='HTML'):
         print('Succeseful')
         return request
 
-def create_request_audio(chat_id, file_id, parse_mode='HTML'):
+def create_request_audio(chat_id, file_id, parse_mode='HTML'): #sendVideoNote
     URL = 'https://api.telegram.org/bot'
     TOKEN = setting
     message_data = { #create requests for send message
@@ -171,6 +171,27 @@ def create_request_audio(chat_id, file_id, parse_mode='HTML'):
     }
     try:
         request = requests.post(URL+TOKEN+'/sendAudio', data=message_data)
+    except:
+        print('Error')
+        return False
+    finally:
+        #if not request.status_code == 200:
+        #    return 200
+        #else:
+        print('Succeseful')
+        return request
+
+def create_request_video(chat_id, file_id, parse_mode='HTML'): #
+    URL = 'https://api.telegram.org/bot'
+    TOKEN = setting
+    message_data = { #create requests for send message
+    'chat_id': chat_id,
+    'video_note': file_id,
+    #'reply_to_message_id': update['message']['message_id'], # sendo to reply?? wtf
+    'parse_mode': parse_mode # about formate text down
+    }
+    try:
+        request = requests.post(URL+TOKEN+'/sendVideoNote', data=message_data)
     except:
         print('Error')
         return False
@@ -229,6 +250,7 @@ def check_update():
 
 
             users_pair = pairs_transform()
+            print()
 
             if 'edited_message' not in update:
                 local_user = Anonims(update['message']['chat']['id'])
@@ -284,8 +306,13 @@ def check_update():
 
                 #костыль только для аудио
                 if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'voice' in update['message']:
-                    print('wtf is it')
+                    print('audio')
                     create_request_audio(int(users_pair[str(update['message']['chat']['id'])]), update['message']['voice']['file_id'])
+
+                if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'video_note' in update['message']:
+                    print('gug')
+                    create_request_video(int(users_pair[str(update['message']['chat']['id'])]), update['message']['video_note']['file_id'])
+
 
         except IndexError:
             print("Ignore Error Index out of range in adding in queue from bot", traceback.format_exc())
