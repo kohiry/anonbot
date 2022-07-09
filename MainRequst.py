@@ -62,10 +62,18 @@ class Anonims:
             else:
                 return True
 
+    def upd_coord(self, latitude, longitude):
+        self.add_into_base(f"UPDATE users SET coord='{latitude}%{longitude}' WHERE userid={int(self.id)};")
+
+    def check_coord(self):
+        info = self.cur.execute(f"SELECT coord FROM users WHERE userid={int(self.id)}").fetchone()
+        self.conn.commit()
+        return info[0]
+
 
     def add_queue(self):
         if self.checkPairs():
-            self.add_into_base(f"INSERT INTO queue VALUES({int(self.id)});")
+            self.add_into_base(f"INSERT OR IGNORE INTO queue VALUES({int(self.id)});")
         else:
             print('We have this id in base')
 
@@ -73,7 +81,7 @@ class Anonims:
         text = ''
         new_text = ''
         with open('Pairs.txt', 'r') as f:
-            text = list(f.readlines())
+            text = tuple(f.readlines())
         for line in text:
             if user2_id not in line:
                 new_text += line
@@ -116,7 +124,7 @@ class Anonims:
         info = self.cur.execute('SELECT userid FROM users WHERE userid=?', (int(self.id),))
         if info.fetchone() is None:
             # если человека нету в бд
-            self.add_into_base(f"INSERT INTO users VALUES({int(self.id)}, 0, '');")
+            self.add_into_base(f"INSERT INTO users VALUES({int(self.id)}, 0, ' ', 'None');")
             return "Added"
         else:
             # если человек есть в бд
@@ -220,6 +228,8 @@ def pairs_transform():
 def geo_data_place(latitude, longitude):
     token = geo
     headers = {'Accept-Language': "ru"}
+    local_user.upd_coord(latitude, longitude)
+    local_user.check_coord()
     adress = requests.get(f"https://eu1.locationiq.com/v1/reverse.php?key={token}&lat={latitude}&lon={longitude}&format=json", headers=headers).json()
     return f'Your home {adress.get("display_name")}'
 
@@ -250,7 +260,6 @@ def check_update():
 
 
             users_pair = pairs_transform()
-            print()
 
             if 'edited_message' not in update:
                 local_user = Anonims(update['message']['chat']['id'])
@@ -282,8 +291,13 @@ def check_update():
                     print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
 
                     if '/search' in update['message']['text']:
-                        create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
-                        local_user.add_queue()
+                        if local_user.check_coord() == 'None':
+                            create_request(update['message']['chat']['id'], "Вы не указали ваше местоположение.")
+                        elif "Димитровград" in geo_data_place(local_user.check_coord().split('%')[0], local_user.check_coord().split('%')[1]):
+                            create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
+                            local_user.add_queue()
+                        else:
+                            create_request(update['message']['chat']['id'], "Вы не имеете доступа к анонимному боту.")
                     elif '/stop' in update['message']['text']:
                         create_request(update['message']['chat']['id'], "убираем связь")
                         if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
