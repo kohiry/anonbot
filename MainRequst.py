@@ -140,11 +140,11 @@ local_user = ''
 
 offset = 0 # for added up to date
 
-def reply_keyboard(chat_id, text):
+def reply_keyboard(chat_id, data_buttons, text):
     URL = 'https://api.telegram.org/bot'
     TOKEN = setting
-    reply_markup ={"keyboard": [[{"request_location":True, "text":"Где я нахожусь"}]], "resize_keyboard": True, "one_time_keyboard": True}
-    data = {'chat_id': chat_id, 'text': text, 'reply_markup': json.dumps(reply_markup)}
+    reply_markup ={"keyboard": data_buttons, "resize_keyboard": True, "one_time_keyboard": True}
+    data = {'chat_id': chat_id, "text":text, 'reply_markup': json.dumps(reply_markup)}
     requests.post(f'{URL}{TOKEN}/sendMessage', data=data)
 
 def create_request(chat_id, text, parse_mode='HTML'):
@@ -285,20 +285,26 @@ def check_update():
                             local_user.clear_queue(id_1, id_2) # пофиксить очищение + идея: можно отправлять фото и видео строго поле 5 сообщения
 
                 if (user_location := update['message'].get('location')):
-                    create_request(update['message']['chat']['id'], geo_data_place(user_location['latitude'], user_location['longitude']))
+                    # один раз отправлять геоданные
+                    geo_data_place(user_location['latitude'], user_location['longitude'])
+                    reply_keyboard(update['message']['chat']['id'], [[{"text":"/search"}]], "Поиск собеседника в Димитровграде.")
 
                 if 'text' in update['message']:
                     print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
 
                     if '/search' in update['message']['text']:
+
                         if local_user.check_coord() == 'None':
                             create_request(update['message']['chat']['id'], "Вы не указали ваше местоположение.")
+                            reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"Где я нахожусь?"}]], "Записываем ваше новое местоположение.")
                         elif "Димитровград" in geo_data_place(local_user.check_coord().split('%')[0], local_user.check_coord().split('%')[1]):
+                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/stop"}]], "Чтобы остановить поиск напишите - /stop")
                             create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
                             local_user.add_queue()
                         else:
                             create_request(update['message']['chat']['id'], "Вы не имеете доступа к анонимному боту.")
                     elif '/stop' in update['message']['text']:
+                        reply_keyboard(update['message']['chat']['id'], [[{"text":"/info"}], [{"text":"/search"}]], "Чтобы начать поиск нового собеседник нажмите /search")
                         create_request(update['message']['chat']['id'], "убираем связь")
                         if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
                             local_user.stop(users_pair[str(update['message']['chat']['id'])])
@@ -316,7 +322,7 @@ def check_update():
                     if  'info' in update['message']['text']:
                         message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
                         create_request(update['message']['chat']['id'], message)
-                        reply_keyboard(update['message']['chat']['id'], "Укажи местоположение.")
+                        reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"Где я нахожусь?"}]], "Записываем ваше новое местоположение.")
 
                 #костыль только для аудио
                 if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'voice' in update['message']:
