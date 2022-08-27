@@ -118,6 +118,7 @@ class Anonims:
             open('Pairs.txt', 'w').close()
             with open('Pairs.txt', 'r+') as f:
                 f.write(text_pair)
+            return (user2_id, self.id)
         else:
             print('We have this id in base')
 
@@ -318,7 +319,9 @@ def check_update():
                         reply_keyboard(update['message']['chat']['id'], [[{"text":"/info - справка по боту"}], [{"text":"/search - поиск собеседника"}]], "Чтобы начать поиск нового собеседник нажмите /search")
                         create_request(update['message']['chat']['id'], "убираем связь")
                         if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
-                            local_user.stop(users_pair[str(update['message']['chat']['id'])])
+                            users_idss = local_user.stop(users_pair[str(update['message']['chat']['id'])])
+                            create_request(str(users_idss[0]), "Связь устранена.")
+                            create_request(str(users_idss[1]), "Связь устранена.")
                         else:
                             create_request(update['message']['chat']['id'], 'Вы не в диалоге.')
                     elif str(update['message']['chat']['id']) in list(users_pair.keys()):
