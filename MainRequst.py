@@ -5,6 +5,7 @@ import sqlite3
 import traceback
 from os import remove
 import json
+from datetime import datetime
 
 
 users_pair = {
@@ -77,6 +78,7 @@ class Anonims:
         else:
             print('We have this id in base')
 
+
     def stop(self, user2_id: str):
         text = ''
         new_text = ''
@@ -139,6 +141,11 @@ local_user = ''
 
 
 offset = 0 # for added up to date
+
+def new_bl():
+    info2 = cur.execute(f'SELECT black_list FROM users')
+    cur.execute(f"UPDATE users SET black_list=' '")
+    conn.commit()
 
 def reply_keyboard(chat_id, data_buttons, text):
     URL = 'https://api.telegram.org/bot'
@@ -250,6 +257,10 @@ def check_update():
         return False
     if not request.json()['ok']:
         return False
+    minutes = int(datetime.now().strftime("%M:%S").split(':')[0])
+    sec = int(datetime.now().strftime("%M:%S").split(':')[1])
+    if  minutes % 10 == 0 and sec in [i for i in range(0, 10)]: # каждые 10 минут 0-10 секунд
+        new_bl()
 
 
     for update in request.json()['result']:
@@ -287,7 +298,7 @@ def check_update():
                 if (user_location := update['message'].get('location')):
                     # один раз отправлять геоданные
                     geo_data_place(user_location['latitude'], user_location['longitude'])
-                    reply_keyboard(update['message']['chat']['id'], [[{"text":"/search"}]], "Поиск собеседника в Димитровграде.")
+                    reply_keyboard(update['message']['chat']['id'], [[{"text":"/search - поиск собеседника"}]], "Поиск собеседника в Димитровграде.")
 
                 if 'text' in update['message']:
                     print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
@@ -298,18 +309,18 @@ def check_update():
                             create_request(update['message']['chat']['id'], "Вы не указали ваше местоположение.")
                             reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"Где я нахожусь?"}]], "Записываем ваше новое местоположение.")
                         elif "Димитровград" in geo_data_place(local_user.check_coord().split('%')[0], local_user.check_coord().split('%')[1]):
-                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/stop"}]], "Чтобы остановить поиск напишите - /stop")
-                            create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, введите повторно")
+                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/stop - закончить диалога"}]], "Чтобы остановить поиск напишите - /stop")
+                            create_request(update['message']['chat']['id'], "ищем...\nесли долго ищет, нажмите повторно /search")
                             local_user.add_queue()
                         else:
                             create_request(update['message']['chat']['id'], "Вы не имеете доступа к анонимному боту.")
                     elif '/stop' in update['message']['text']:
-                        reply_keyboard(update['message']['chat']['id'], [[{"text":"/info"}], [{"text":"/search"}]], "Чтобы начать поиск нового собеседник нажмите /search")
+                        reply_keyboard(update['message']['chat']['id'], [[{"text":"/info - справка по боту"}], [{"text":"/search - поиск собеседника"}]], "Чтобы начать поиск нового собеседник нажмите /search")
                         create_request(update['message']['chat']['id'], "убираем связь")
                         if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
                             local_user.stop(users_pair[str(update['message']['chat']['id'])])
                         else:
-                            create_request(update['message']['chat']['id'], 'Ты не в диалоге, дурак.')
+                            create_request(update['message']['chat']['id'], 'Вы не в диалоге.')
                     elif str(update['message']['chat']['id']) in list(users_pair.keys()):
                         create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
                     if  '/start' in update['message']['text']:
@@ -318,11 +329,11 @@ def check_update():
                         if reg_commit == "Added":
                             create_request(update['message']['chat']['id'], 'Новичок, это хорошо!')
                         elif reg_commit == "Been":
-                            create_request(update['message']['chat']['id'], 'Ты уже зарегистрирован.')
+                            create_request(update['message']['chat']['id'], 'Мы вас помним! нажмите /search для поиска собеседника.')
                     if  'info' in update['message']['text']:
-                        message = 'info - information about commands\n/start - start work\n/search - searching users\n/stop - stopping dialog'
+                        message = '/info - справка о боте\n/start - начать\n/search - поиск собеседника\n/stop - конец диалога'
                         create_request(update['message']['chat']['id'], message)
-                        reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"Где я нахожусь?"}]], "Записываем ваше новое местоположение.")
+                        reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"Где я нахожусь?"}], [{"text":"/start - начать"}], [{"text":"/search - поиск собеседника"}], [{"text":"/stop - конец диалога"}]], "Записываем ваше новое местоположение.")
 
                 #костыль только для аудио
                 if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'voice' in update['message']:
