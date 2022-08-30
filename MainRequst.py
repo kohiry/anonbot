@@ -313,23 +313,23 @@ def check_update():
 
                     if '/search' in update['message']['text']:
 
-                        if local_user.check_coord() == 'None':
-                            create_request(update['message']['chat']['id'], "Вы не указали ваше местоположение.")
+                        if local_user.check_coord() == 'None' or  local_user.check_coord() in " ":
+                            create_request(update['message']['chat']['id'], "Вы не указали ваше местоположение. Нажмите кнопку 'Где я нахожусь?'")
                             reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"🌍 Где я нахожусь ?"}]], "Записываем ваше новое местоположение.")
                         elif "Димитровград" in geo_data_place(local_user.check_coord().split('%')[0], local_user.check_coord().split('%')[1]):
-                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/stop - ❌ Конец диалога"}]], "Чтобы остановить поиск напишите - /stop")
+                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/stop - ❌ Конец диалога"}]], "Чтобы остановить поиск напишите - /stop")
                             create_request(update['message']['chat']['id'], "Ищем, дрищем...\nЕсли долго ищет, нажмите повторно /search")
                             local_user.add_queue()
                         else:
                             create_request(update['message']['chat']['id'], "Вы не имеете доступа к анонимному боту.")
                     elif '/stop' in update['message']['text']:
-                        reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/search - 🔍 Поиск собеседника"}]], "Чтобы начать поиск нового собеседник нажмите /search")
-                        create_request(update['message']['chat']['id'], "Убираем связь")
                         if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
                             users_idss = local_user.stop(users_pair[str(update['message']['chat']['id'])])
                             if users_idss is not None:
                                 create_request(str(users_idss[0]), "❌ Связь оборвана")
+                                reply_keyboard(str(users_idss[0]), [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/search - 🔍 Поиск собеседника"}]], "Чтобы начать поиск нового собеседник нажмите /search")
                                 create_request(str(users_idss[1]), "❌ Связь оборвана")
+                                reply_keyboard(str(users_idss[1]), [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/search - 🔍 Поиск собеседника"}]], "Чтобы начать поиск нового собеседник нажмите /search")
                         else:
                             create_request(update['message']['chat']['id'], 'Вы не в диалоге')
                     elif str(update['message']['chat']['id']) in list(users_pair.keys()):
