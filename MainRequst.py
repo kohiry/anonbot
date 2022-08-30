@@ -24,6 +24,24 @@ class Anonims:
         self.conn = sqlite3.connect('BASE.db', check_same_thread=False)
         self.cur = self.conn.cursor()
 
+    def spam_control(self): # если нету id в файле добавить
+        been = False
+        with open("spam.txt", "r") as f:
+            pair_id_spambool = tuple(f.readlines())
+            print(pair_id_spambool)
+
+        with open("spam.txt", "a") as f:
+            if str(self.id)+"\n" not in pair_id_spambool:
+                f.write(str(self.id)+'\n')
+                print(self.id, "Нету в базе спама")
+                been = True
+        if been:
+            return True
+        else:
+            print(self.id, "уже в базе спама")
+            return False
+
+
     def alg_sort(self, massive):
         id_plus_keys = dict()
         for id in massive:
@@ -244,6 +262,11 @@ def bot_rules():
     text = "https://telegra.ph/Pravila-anonimnogo-Dimitrovgradskogo-chata-qiwvi-bot-08-29"
     return text
 
+def clear_spam():
+    with open("spam.txt", "w") as f:
+        f.write('')
+
+
 def check_update():
     global offset, local_user, users_pair
 
@@ -267,22 +290,21 @@ def check_update():
     if  minutes % 10 == 0 and sec in [i for i in range(0, 10)]: # каждые 10 минут 0-10 секунд
         new_bl()
 
-    #if  hours == 13 and minutes in [i for i in range(0, 10)]: # каждые 10 минут 0-10 секунд
-        #rules()
-
+    if minutes == 1 and hours == 3 and sec in [i for i in range(0, 10)]:
+        clear_spam()
 
     for update in request.json()['result']:
         try:
-
-
             offset = update['update_id'] # подтверждаем обновление
 
 
             users_pair = pairs_transform()
+            print(update)
 
             if 'edited_message' not in update:
                 local_user = Anonims(update['message']['chat']['id'])
                 local_user.checkPairs()
+
                 answer = local_user.want_search()
                 if type(answer) == type([]):
                     with open('Pairs.txt', 'a') as f:
@@ -323,6 +345,9 @@ def check_update():
                         else:
                             create_request(update['message']['chat']['id'], "Вы не имеете доступа к анонимному боту.")
                     elif '/stop' in update['message']['text']:
+
+                        if local_user.spam_control(): #true - нету в списке
+                            create_request(update['message']['chat']['id'], "Последние новости по боту 👉🏻👉🏻👉🏻 https://t.me/DDqiwvi")
                         if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
                             users_idss = local_user.stop(users_pair[str(update['message']['chat']['id'])])
                             if users_idss is not None:
