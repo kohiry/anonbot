@@ -68,7 +68,6 @@ class Anonims:
             return 'NULL'
 
     def clear_queue(self, *ids):
-        print(id)
         self.cur.execute(f"DELETE FROM queue WHERE userid={ids[0]}")
         self.cur.execute(f"DELETE FROM queue WHERE userid={ids[1]}")
         self.conn.commit()
@@ -334,7 +333,7 @@ def check_update():
                     reply_keyboard(update['message']['chat']['id'], [[{"text":"/search - 🔍 Поиск собеседника"}]], "Поиск собеседника в Димитровграде.")
 
                 if 'text' in update['message']:
-                    print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
+                    print(str(update['message']['chat']['id']) + ': - ' + update['message']['text'])
 
                     if '/search' in update['message']['text']:
 
@@ -381,7 +380,7 @@ def check_update():
                     create_request_audio(int(users_pair[str(update['message']['chat']['id'])]), update['message']['voice']['file_id'])
 
                 if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'video_note' in update['message']:
-                    print('gug')
+                    print('video')
                     create_request_video(int(users_pair[str(update['message']['chat']['id'])]), update['message']['video_note']['file_id'])
 
 
