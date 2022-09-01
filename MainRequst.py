@@ -68,7 +68,6 @@ class Anonims:
             return 'NULL'
 
     def clear_queue(self, *ids):
-        print(id)
         self.cur.execute(f"DELETE FROM queue WHERE userid={ids[0]}")
         self.cur.execute(f"DELETE FROM queue WHERE userid={ids[1]}")
         self.conn.commit()
@@ -241,12 +240,15 @@ def pairs_transform():
     with open('Pairs.txt', 'r') as f:
         pair_data = f.readlines()
     for line in pair_data:
-
-        first, second = line[0:len(line)-1].split(';')[0], line[0:len(line)-1].split(';')[1]
-        dict_pairs[first.split('=')[0]] = first.split('=')[1]
-        dict_pairs[first.split('=')[1]] = first.split('=')[0]
-        dict_pairs[second.split('=')[0]] = second.split('=')[1]
-        dict_pairs[second.split('=')[1]] = second.split('=')[0]
+        if line not in ['', ' '] and '=' in line:
+            print(line)
+            first, second = line[0:len(line)-1].split(';')[0], line[0:len(line)-1].split(';')[1]
+            dict_pairs[first.split('=')[0]] = first.split('=')[1]
+            dict_pairs[first.split('=')[1]] = first.split('=')[0]
+            dict_pairs[second.split('=')[0]] = second.split('=')[1]
+            dict_pairs[second.split('=')[1]] = second.split('=')[0]
+        else:
+            print('bug with pairs fixed')
         #print(line)
     return dict_pairs
 
@@ -305,16 +307,19 @@ def check_update():
                 local_user = Anonims(update['message']['chat']['id'])
                 local_user.checkPairs()
 
-                answer = local_user.want_search()
-                if type(answer) == type([]):
+                answer = tuple(local_user.want_search())
+                print(answer)
+                if type(answer) == type(("",)) and answer[0] != 'N':
                     with open('Pairs.txt', 'a') as f:
                         rules = local_user.alg_sort(answer) # взвращает словарь
                         keys_black_list = tuple(rules.keys())
                         right_pairs = set()
                         for i in range(len(keys_black_list)):
                             for j in range(i+1, len(keys_black_list)):
-                                # основные проверки, что есть в blacck листе или нету
-                                if str(keys_black_list[i]) not in rules[keys_black_list[j]]:
+                                # основные проверки, что есть в black листе или нету и нету id уже в списке
+                                check_first = keys_black_list[j] not in right_pairs
+                                check_second = keys_black_list[i] not in right_pairs
+                                if str(keys_black_list[i]) not in rules[keys_black_list[j]] and check_first and check_second:
 
                                     right_pairs.add((keys_black_list[i], keys_black_list[j]))
                                     break
@@ -331,7 +336,7 @@ def check_update():
                     reply_keyboard(update['message']['chat']['id'], [[{"text":"/search - 🔍 Поиск собеседника"}]], "Поиск собеседника в Димитровграде.")
 
                 if 'text' in update['message']:
-                    print(str(update['message']['chat']['id']) + ': work with this id - ' + update['message']['text'])
+                    print(str(update['message']['chat']['id']) + ': - ' + update['message']['text'])
 
                     if '/search' in update['message']['text']:
 
@@ -378,7 +383,7 @@ def check_update():
                     create_request_audio(int(users_pair[str(update['message']['chat']['id'])]), update['message']['voice']['file_id'])
 
                 if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'video_note' in update['message']:
-                    print('gug')
+                    print('video')
                     create_request_video(int(users_pair[str(update['message']['chat']['id'])]), update['message']['video_note']['file_id'])
 
 
