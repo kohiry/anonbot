@@ -307,16 +307,19 @@ def check_update():
                 local_user = Anonims(update['message']['chat']['id'])
                 local_user.checkPairs()
 
-                answer = local_user.want_search()
-                if type(answer) == type([]):
+                answer = tuple(local_user.want_search())
+                print(answer)
+                if type(answer) == type(("",)) and answer[0] != 'N':
                     with open('Pairs.txt', 'a') as f:
                         rules = local_user.alg_sort(answer) # взвращает словарь
                         keys_black_list = tuple(rules.keys())
                         right_pairs = set()
                         for i in range(len(keys_black_list)):
                             for j in range(i+1, len(keys_black_list)):
-                                # основные проверки, что есть в blacck листе или нету
-                                if str(keys_black_list[i]) not in rules[keys_black_list[j]]:
+                                # основные проверки, что есть в black листе или нету и нету id уже в списке
+                                check_first = keys_black_list[j] not in right_pairs
+                                check_second = keys_black_list[i] not in right_pairs
+                                if str(keys_black_list[i]) not in rules[keys_black_list[j]] and check_first and check_second:
 
                                     right_pairs.add((keys_black_list[i], keys_black_list[j]))
                                     break
