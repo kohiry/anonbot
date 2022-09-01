@@ -241,12 +241,15 @@ def pairs_transform():
     with open('Pairs.txt', 'r') as f:
         pair_data = f.readlines()
     for line in pair_data:
-
-        first, second = line[0:len(line)-1].split(';')[0], line[0:len(line)-1].split(';')[1]
-        dict_pairs[first.split('=')[0]] = first.split('=')[1]
-        dict_pairs[first.split('=')[1]] = first.split('=')[0]
-        dict_pairs[second.split('=')[0]] = second.split('=')[1]
-        dict_pairs[second.split('=')[1]] = second.split('=')[0]
+        if line not in ['', ' '] and '=' in line:
+            print(line)
+            first, second = line[0:len(line)-1].split(';')[0], line[0:len(line)-1].split(';')[1]
+            dict_pairs[first.split('=')[0]] = first.split('=')[1]
+            dict_pairs[first.split('=')[1]] = first.split('=')[0]
+            dict_pairs[second.split('=')[0]] = second.split('=')[1]
+            dict_pairs[second.split('=')[1]] = second.split('=')[0]
+        else:
+            print('bug with pairs fixed')
         #print(line)
     return dict_pairs
 
