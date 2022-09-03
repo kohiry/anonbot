@@ -74,7 +74,7 @@ class Anonims:
 
     def checkPairs(self):
         with open('Pairs.txt', 'r') as f:
-            for line in list(f.readlines()):
+            for line in tuple(f.readlines()):
                 if str(self.id) in line:
                     return False
             else:
@@ -94,6 +94,11 @@ class Anonims:
             self.add_into_base(f"INSERT OR IGNORE INTO queue VALUES({int(self.id)});")
         else:
             print('We have this id in base')
+
+    def clear_solo_queue(self):
+        self.cur.execute(f"DELETE FROM queue WHERE userid={int(self.id)}")
+        self.conn.commit()
+        print('АУАУАУА')
 
 
     def stop(self, user2_id: str):
@@ -247,8 +252,8 @@ def pairs_transform():
             dict_pairs[first.split('=')[1]] = first.split('=')[0]
             dict_pairs[second.split('=')[0]] = second.split('=')[1]
             dict_pairs[second.split('=')[1]] = second.split('=')[0]
-        else:
-            print('bug with pairs fixed')
+        #else:
+        #    print('bug with pairs fixed')
         #print(line)
     return dict_pairs
 
@@ -307,29 +312,6 @@ def check_update():
                 local_user = Anonims(update['message']['chat']['id'])
                 local_user.checkPairs()
 
-                answer = tuple(local_user.want_search())
-                print(answer)
-                if type(answer) == type(("",)) and answer[0] != 'N':
-                    with open('Pairs.txt', 'a') as f:
-                        rules = local_user.alg_sort(answer) # взвращает словарь
-                        keys_black_list = tuple(rules.keys())
-                        right_pairs = set()
-                        for i in range(len(keys_black_list)):
-                            for j in range(i+1, len(keys_black_list)):
-                                # основные проверки, что есть в black листе или нету и нету id уже в списке
-                                check_first = keys_black_list[j] not in right_pairs
-                                check_second = keys_black_list[i] not in right_pairs
-                                if str(keys_black_list[i]) not in rules[keys_black_list[j]] and check_first and check_second:
-
-                                    right_pairs.add((keys_black_list[i], keys_black_list[j]))
-                                    break
-                        for id_1, id_2 in right_pairs:
-                            create_request(str(id_1), "✅ Связь установлена")
-                            create_request(str(id_2), "✅ Связь установлена")
-                            print(id_1, id_2, "LolBol")
-                            f.write(str(id_1) + '=' + str(id_2) + ';' + str(id_2) + '=' + str(id_1)+'\n')
-                            local_user.clear_queue(id_1, id_2) # пофиксить очищение + идея: можно отправлять фото и видео строго поле 5 сообщения
-
                 if (user_location := update['message'].get('location')):
                     # один раз отправлять геоданные
                     geo_data_place(user_location['latitude'], user_location['longitude'])
@@ -362,6 +344,7 @@ def check_update():
                                 reply_keyboard(str(users_idss[1]), [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/search - 🔍 Поиск собеседника"}]], "Чтобы начать поиск нового собеседник нажмите /search")
                         else:
                             create_request(update['message']['chat']['id'], 'Вы не в диалоге')
+                            local_user.clear_solo_queue()
                     elif str(update['message']['chat']['id']) in list(users_pair.keys()):
                         create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
                     if  '/start' in update['message']['text']:
@@ -385,6 +368,29 @@ def check_update():
                 if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'video_note' in update['message']:
                     print('video')
                     create_request_video(int(users_pair[str(update['message']['chat']['id'])]), update['message']['video_note']['file_id'])
+
+                answer = tuple(local_user.want_search())
+                print(answer)
+                if type(answer) == type(("",)) and answer[0] != 'N':
+                    with open('Pairs.txt', 'a') as f:
+                        rules = local_user.alg_sort(answer) # взвращает словарь
+                        keys_black_list = tuple(rules.keys())
+                        right_pairs = set()
+                        for i in range(len(keys_black_list)):
+                            for j in range(i+1, len(keys_black_list)):
+                                # основные проверки, что есть в black листе или нету и нету id уже в списке
+                                check_first = keys_black_list[j] not in right_pairs
+                                check_second = keys_black_list[i] not in right_pairs
+                                if str(keys_black_list[i]) not in rules[keys_black_list[j]] and check_first and check_second:
+
+                                    right_pairs.add((keys_black_list[i], keys_black_list[j]))
+                                    break
+                        for id_1, id_2 in right_pairs:
+                            create_request(str(id_1), "✅ Связь установлена")
+                            create_request(str(id_2), "✅ Связь установлена")
+                            print(id_1, id_2, "LolBol")
+                            f.write(str(id_1) + '=' + str(id_2) + ';' + str(id_2) + '=' + str(id_1)+'\n')
+                            local_user.clear_queue(id_1, id_2) # пофиксить очищение + идея: можно отправлять фото и видео строго поле 5 сообщения
 
 
         except IndexError:
