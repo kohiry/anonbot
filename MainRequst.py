@@ -298,7 +298,7 @@ def check_update():
     if  minutes % 10 == 0 and sec in [i for i in range(0, 10)]: # каждые 10 минут 0-10 секунд
         new_bl()
 
-    if minutes == 1 and hours == 3 and sec in [i for i in range(0, 10)]:
+    if minutes == 54 and hours % 5 == 0 and sec in [i for i in range(0, 10)]:
         clear_spam()
 
     for update in request.json()['result']:
