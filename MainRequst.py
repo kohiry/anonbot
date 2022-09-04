@@ -6,7 +6,7 @@ import traceback
 from os import remove
 import json
 from datetime import datetime
-
+import bad_phrase_in_dialog
 
 users_pair = {
  '1': '1'
@@ -160,9 +160,10 @@ cur = conn.cursor()
 local_user = ''
 
 
-
-
 offset = 0 # for added up to date
+
+phrase_dont_show = bad_phrase_in_dialog.phrase
+
 
 def new_bl():
     info2 = cur.execute(f'SELECT black_list FROM users')
@@ -310,7 +311,6 @@ def check_update():
 
             if 'edited_message' not in update:
                 local_user = Anonims(update['message']['chat']['id'])
-                local_user.checkPairs()
 
                 if (user_location := update['message'].get('location')):
                     # один раз отправлять геоданные
@@ -320,18 +320,7 @@ def check_update():
                 if 'text' in update['message']:
                     print(str(update['message']['chat']['id']) + ': - ' + update['message']['text'])
 
-                    if '/search' in update['message']['text']:
-
-                        if local_user.check_coord() == 'None' or  local_user.check_coord() in " ":
-                            create_request(update['message']['chat']['id'], "Вы не указали ваше местоположение. Нажмите кнопку 'Где я нахожусь?'")
-                            reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"🌍 Где я нахожусь ?"}]], "Записываем ваше новое местоположение.")
-                        elif "Димитровград" in geo_data_place(local_user.check_coord().split('%')[0], local_user.check_coord().split('%')[1]):
-                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/stop - ❌ Конец диалога"}]], "Чтобы остановить поиск напишите - /stop")
-                            create_request(update['message']['chat']['id'], "Ищем, дрищем...\nЕсли долго ищет, нажмите повторно /search")
-                            local_user.add_queue()
-                        else:
-                            create_request(update['message']['chat']['id'], "Вы не имеете доступа к анонимному боту.")
-                    elif '/stop' in update['message']['text']:
+                    if '/stop' in update['message']['text']:
 
                         if local_user.spam_control(): #true - нету в списке
                             create_request(update['message']['chat']['id'], "Последние новости по боту 👉🏻👉🏻👉🏻 https://t.me/DDqiwvi")
@@ -345,20 +334,34 @@ def check_update():
                         else:
                             create_request(update['message']['chat']['id'], 'Вы не в диалоге')
                             local_user.clear_solo_queue()
-                    elif str(update['message']['chat']['id']) in list(users_pair.keys()):
+                    if str(update['message']['chat']['id']) in list(users_pair.keys()) and update['message']['text'] not in phrase_dont_show:
                         create_request(int(users_pair[str(update['message']['chat']['id'])]), update['message']['text'])
-                    if  '/start' in update['message']['text']:
-                        reg_commit = local_user.registration()
-                        if reg_commit == "Added":
-                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}]], "Новичок, это хорошо!")
-                        elif reg_commit == "Been":
-                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}]], 'Мы вас помним! нажмите /search - 🔍 для поиска собеседника')
-                    if  '/info' in update['message']['text']:
-                        message = '/info -  ℹ️ Справка по боту\n/start - 🏁 Начать\n/search - 🔍 Поиск собеседника\n/stop - ❌ Конец диалога\n/rules - 👮 правила бота‍'
-                        create_request(update['message']['chat']['id'], message)
-                        reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"🌍 Где я нахожусь ?"}], [{"text":"/start - 🏁 Начать"}], [{"text":"/search - 🔍 Поиск собеседника"}], [{"text":"/stop - ❌ Конец диалога"}], [{"text":"/rules - 👮 правила бота"}]], "Проверяем ваше новое местоположение")
-                    if '/rules' in update['message']['text']:
-                        reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/search - 🔍 Поиск собеседника"}]], bot_rules())
+
+                    if local_user.checkPairs():
+
+                        if '/search' in update['message']['text']:
+
+                            if local_user.check_coord() == 'None' or  local_user.check_coord() in " ":
+                                create_request(update['message']['chat']['id'], "Вы не указали ваше местоположение. Нажмите кнопку 'Где я нахожусь?'")
+                                reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"🌍 Где я нахожусь ?"}]], "Записываем ваше новое местоположение.")
+                            elif "Димитровград" in geo_data_place(local_user.check_coord().split('%')[0], local_user.check_coord().split('%')[1]):
+                                reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/stop - ❌ Конец диалога"}]], "Чтобы остановить поиск напишите - /stop")
+                                create_request(update['message']['chat']['id'], "Ищем, дрищем...\nЕсли долго ищет, нажмите повторно /search")
+                                local_user.add_queue()
+                            else:
+                                create_request(update['message']['chat']['id'], "Вы не имеете доступа к анонимному боту.")
+                        if  '/start' in update['message']['text']:
+                            reg_commit = local_user.registration()
+                            if reg_commit == "Added":
+                                reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}]], "Новичок, это хорошо!")
+                            elif reg_commit == "Been":
+                                reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}]], 'Мы вас помним! нажмите /search - 🔍 для поиска собеседника')
+                        if  '/info' in update['message']['text']:
+                            message = '/info -  ℹ️ Справка по боту\n/start - 🏁 Начать\n/search - 🔍 Поиск собеседника\n/stop - ❌ Конец диалога\n/rules - 👮 правила бота‍'
+                            create_request(update['message']['chat']['id'], message)
+                            reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"🌍 Где я нахожусь ?"}], [{"text":"/start - 🏁 Начать"}], [{"text":"/search - 🔍 Поиск собеседника"}], [{"text":"/stop - ❌ Конец диалога"}], [{"text":"/rules - 👮 правила бота"}]], "Проверяем ваше новое местоположение")
+                        if '/rules' in update['message']['text']:
+                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/search - 🔍 Поиск собеседника"}]], bot_rules())
 
                 #костыль только для аудио
                 if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'voice' in update['message']:
