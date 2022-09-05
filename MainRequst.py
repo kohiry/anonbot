@@ -323,7 +323,7 @@ def check_update():
                     if '/stop' in update['message']['text']:
 
                         if local_user.spam_control(): #true - нету в списке
-                            create_request(update['message']['chat']['id'], "Последние новости по боту 👉🏻👉🏻👉🏻 https://t.me/DDqiwvi")
+                            create_request(update['message']['chat']['id'], 'Последние <a href="https://t.me/DDqiwvi">новости</a> по боту 👉🏻👉🏻👉🏻')
                         if str(update['message']['chat']['id']) in list(pairs_transform().keys()):
                             users_idss = local_user.stop(users_pair[str(update['message']['chat']['id'])])
                             if users_idss is not None:
@@ -361,7 +361,8 @@ def check_update():
                             create_request(update['message']['chat']['id'], message)
                             reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"🌍 Где я нахожусь ?"}], [{"text":"/start - 🏁 Начать"}], [{"text":"/search - 🔍 Поиск собеседника"}], [{"text":"/stop - ❌ Конец диалога"}], [{"text":"/rules - 👮 правила бота"}]], "Проверяем ваше новое местоположение")
                         if '/rules' in update['message']['text']:
-                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/search - 🔍 Поиск собеседника"}]], bot_rules())
+                            create_request(update['message']['chat']['id'],  f'<a href="{bot_rules()}">Правила бота</a>')
+                            reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/search - 🔍 Поиск собеседника"}]], 'Прочтите внимательно!')
 
                 #костыль только для аудио
                 if str(update['message']['chat']['id']) in list(users_pair.keys()) and 'voice' in update['message']:
