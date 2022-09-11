@@ -1,5 +1,5 @@
 import requests
-from info import setting, geo
+from info import setting, geo, town
 from random import choice
 import sqlite3
 import traceback
@@ -344,7 +344,7 @@ def check_update():
                             if local_user.check_coord() == 'None' or  local_user.check_coord() in " ":
                                 create_request(update['message']['chat']['id'], "Вы не указали ваше местоположение. Нажмите кнопку 'Где я нахожусь?'")
                                 reply_keyboard(update['message']['chat']['id'], [[{"request_location":True, "text":"🌍 Где я нахожусь ?"}]], "Записываем ваше новое местоположение.")
-                            elif "Димитровград" in geo_data_place(local_user.check_coord().split('%')[0], local_user.check_coord().split('%')[1]):
+                            elif town in geo_data_place(local_user.check_coord().split('%')[0], local_user.check_coord().split('%')[1]):
                                 reply_keyboard(update['message']['chat']['id'], [[{"text":"/info -  ℹ️ Справка по боту"}], [{"text":"/stop - ❌ Конец диалога"}]], "Чтобы остановить поиск напишите - /stop")
                                 create_request(update['message']['chat']['id'], "Ищем, дрищем...\nЕсли долго ищет, нажмите повторно /search")
                                 local_user.add_queue()
