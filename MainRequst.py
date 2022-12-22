@@ -284,7 +284,7 @@ def check_update():
     DATA = {'offset': offset + 1, 'limit':0, 'timeout': 0}
 
     try:
-        request = requests.get(URL+TOKEN+'/getUpdates', data=DATA)
+        request = requests.get(URL+TOKEN+'/getUpdates', data=DATA)  # а что если пока кутится обновление, я буду отправлять сторонний процесс
     except Exception as e:
         print("Error Lol", e)
         return False
@@ -379,7 +379,7 @@ def check_update():
                     with open('Pairs.txt', 'a') as f:
                         rules = local_user.alg_sort(answer) # взвращает словарь
                         keys_black_list = tuple(rules.keys())
-                        right_pairs = set()
+                        right_pairs = list()
                         for i in range(len(keys_black_list)):
                             for j in range(i+1, len(keys_black_list)):
                                 # основные проверки, что есть в black листе или нету и нету id уже в списке
@@ -387,7 +387,7 @@ def check_update():
                                 check_second = keys_black_list[i] not in right_pairs
                                 if str(keys_black_list[i]) not in rules[keys_black_list[j]] and check_first and check_second:
 
-                                    right_pairs.add((keys_black_list[i], keys_black_list[j]))
+                                    right_pairs.append((keys_black_list[i], keys_black_list[j]))
                                     break
                         for id_1, id_2 in right_pairs:
                             create_request(str(id_1), "✅ Связь установлена")
