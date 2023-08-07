@@ -5,7 +5,6 @@ __pycache__/
 
 # C extensions
 *.so
-info.py
 task.txt
 
 data_bl.txt
