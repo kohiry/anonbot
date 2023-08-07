@@ -7,5 +7,5 @@
 
 > В конечном итоге, делаю его для создания чего-то в духе леовинчи.
 
-## How To User
+## How To Use
 `python MainRequest.py`
